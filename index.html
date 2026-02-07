@@ -2,175 +2,215 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <title>TETRIS NEXUS - FINAL</title>
+    <title>TETRIS NEXUS - ONLINE</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@700&display=swap');
-        body { background: #05050a; color: #00f2ff; font-family: 'Orbitron', sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; overflow: hidden; }
-        #wrapper { position: relative; border: 2px solid #00f2ff; padding: 20px; background: rgba(0,0,0,0.8); box-shadow: 0 0 20px #00f2ff; display: flex; gap: 20px; }
-        #board { width: 250px; height: 500px; background: #000; position: relative; border: 1px solid #333; }
-        .block { position: absolute; width: 25px; height: 25px; box-sizing: border-box; border: 1px solid rgba(255,255,255,0.2); }
-        .overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 100; }
-        .btn { background: none; border: 2px solid #00f2ff; color: #00f2ff; padding: 15px 30px; font-family: 'Orbitron'; font-size: 20px; cursor: pointer; transition: 0.3s; }
-        .btn:hover { background: #00f2ff; color: #000; box-shadow: 0 0 20px #00f2ff; }
+        
+        /* 전체 레이아웃 */
+        body { 
+            background: #05050a; color: #00f2ff; font-family: 'Orbitron', sans-serif; 
+            display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; overflow: hidden; 
+        }
+        
+        #game-container { 
+            position: relative; border: 3px solid #00f2ff; background: #000; 
+            box-shadow: 0 0 30px rgba(0, 242, 255, 0.4); 
+        }
+
+        #board { 
+            width: 250px; height: 500px; position: relative; background: #000; 
+        }
+
+        .block { 
+            position: absolute; width: 25px; height: 25px; box-sizing: border-box; 
+            border: 1px solid rgba(255,255,255,0.1); 
+        }
+
+        /* 화면 덮개 (UI) */
+        .overlay { 
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%; 
+            background: rgba(0,0,0,0.9); display: flex; flex-direction: column; 
+            justify-content: center; align-items: center; z-index: 9999; /* 최상단 배치 */
+        }
+
+        .btn { 
+            background: #00f2ff; border: none; color: #000; padding: 20px 40px; 
+            font-family: 'Orbitron'; font-size: 22px; cursor: pointer; font-weight: bold;
+            transition: 0.2s; pointer-events: auto; /* 클릭 보장 */
+        }
+        .btn:hover { transform: scale(1.1); background: #fff; box-shadow: 0 0 20px #fff; }
+
         .hidden { display: none !important; }
-        /* 블록 색상 */
-        .I { background: #00f0f0; box-shadow: 0 0 10px #00f0f0; }
-        .J { background: #0000f0; box-shadow: 0 0 10px #0000f0; }
-        .L { background: #f0a000; box-shadow: 0 0 10px #f0a000; }
-        .O { background: #f0f000; box-shadow: 0 0 10px #f0f000; }
-        .S { background: #00f000; box-shadow: 0 0 10px #00f000; }
-        .T { background: #a000f0; box-shadow: 0 0 10px #a000f0; }
-        .Z { background: #f00000; box-shadow: 0 0 10px #f00000; }
+
+        /* 블록 색상 테마 */
+        .I { background: #00f0f0; box-shadow: inset 0 0 10px #fff; }
+        .J { background: #0000f0; box-shadow: inset 0 0 10px #fff; }
+        .L { background: #f0a000; box-shadow: inset 0 0 10px #fff; }
+        .O { background: #f0f000; box-shadow: inset 0 0 10px #fff; }
+        .S { background: #00f000; box-shadow: inset 0 0 10px #fff; }
+        .T { background: #a000f0; box-shadow: inset 0 0 10px #fff; }
+        .Z { background: #f00000; box-shadow: inset 0 0 10px #fff; }
+        
+        #score-display { position: absolute; top: -40px; left: 0; font-size: 18px; }
     </style>
 </head>
 <body>
 
-<div id="wrapper">
+<div id="game-container">
+    <div id="score-display">SCORE: <span id="score">0</span></div>
     <div id="board"></div>
-    <div style="width: 100px; text-align: center;">
-        <p style="font-size: 12px;">SCORE</p>
-        <p id="score" style="font-size: 20px;">0</p>
-    </div>
 
     <div id="start-screen" class="overlay">
-        <h1 style="margin-bottom: 30px;">NEXUS</h1>
-        <button id="start-btn" class="btn">START GAME</button>
+        <h1 style="font-size: 40px; text-shadow: 0 0 10px #00f2ff;">NEXUS</h1>
+        <button id="start-btn" class="btn" type="button">START GAME</button>
     </div>
 
     <div id="game-over" class="overlay hidden">
-        <h2 style="color: red;">GAME OVER</h2>
-        <button id="retry-btn" class="btn">RETRY</button>
+        <h2 style="color: #ff0044;">CORE HALTED</h2>
+        <button id="retry-btn" class="btn" type="button">REBOOT</button>
     </div>
 </div>
 
 <script>
-    // 모든 요소가 로드된 후 실행되도록 보장
-    window.onload = function() {
-        const boardEl = document.getElementById('board');
-        const scoreEl = document.getElementById('score');
-        const startScreen = document.getElementById('start-screen');
-        const gameOverScreen = document.getElementById('game-over');
-        const startBtn = document.getElementById('start-btn');
-        const retryBtn = document.getElementById('retry-btn');
+    // 1. 전역 변수 선언
+    const boardEl = document.getElementById('board');
+    const scoreEl = document.getElementById('score');
+    const startScreen = document.getElementById('start-screen');
+    const gameOverScreen = document.getElementById('game-over');
+    
+    const ROWS = 20;
+    const COLS = 10;
+    let grid, score, currentPiece, gameInterval;
 
-        const ROWS = 20;
-        const COLS = 10;
-        let grid, score, currentPiece, gameInterval;
+    const SHAPES = {
+        I: [[1, 1, 1, 1]],
+        J: [[1, 0, 0], [1, 1, 1]],
+        L: [[0, 0, 1], [1, 1, 1]],
+        O: [[1, 1], [1, 1]],
+        S: [[0, 1, 1], [1, 1, 0]],
+        T: [[0, 1, 0], [1, 1, 1]],
+        Z: [[1, 1, 0], [0, 1, 1]]
+    };
 
-        const SHAPES = {
-            I: [[1, 1, 1, 1]],
-            J: [[1, 0, 0], [1, 1, 1]],
-            L: [[0, 0, 1], [1, 1, 1]],
-            O: [[1, 1], [1, 1]],
-            S: [[0, 1, 1], [1, 1, 0]],
-            T: [[0, 1, 0], [1, 1, 1]],
-            Z: [[1, 1, 0], [0, 1, 1]]
-        };
+    // 2. 게임 초기화 함수
+    function init() {
+        console.log("Game Starting..."); // 작동 확인용
+        grid = Array.from({ length: ROWS }, () => Array(COLS).fill(0));
+        score = 0;
+        scoreEl.innerText = score;
+        
+        startScreen.classList.add('hidden');
+        gameOverScreen.classList.add('hidden');
+        
+        currentPiece = createPiece();
+        if (gameInterval) clearInterval(gameInterval);
+        gameInterval = setInterval(() => move(0, 1), 800);
+        draw();
+    }
 
-        function init() {
-            grid = Array.from({ length: ROWS }, () => Array(COLS).fill(0));
-            score = 0;
-            scoreEl.innerText = score;
-            startScreen.classList.add('hidden');
-            gameOverScreen.classList.add('hidden');
+    function createPiece() {
+        const keys = Object.keys(SHAPES);
+        const type = keys[Math.floor(Math.random() * keys.length)];
+        return { type, shape: SHAPES[type], x: 3, y: 0 };
+    }
+
+    function draw() {
+        boardEl.innerHTML = '';
+        grid.forEach((row, y) => {
+            row.forEach((type, x) => {
+                if (type) addBlock(x, y, type);
+            });
+        });
+        if (currentPiece) {
+            currentPiece.shape.forEach((row, dy) => {
+                row.forEach((v, dx) => {
+                    if (v) addBlock(currentPiece.x + dx, currentPiece.y + dy, currentPiece.type);
+                });
+            });
+        }
+    }
+
+    function addBlock(x, y, type) {
+        const b = document.createElement('div');
+        b.className = 'block ' + type;
+        b.style.left = x * 25 + 'px';
+        b.style.top = y * 25 + 'px';
+        boardEl.appendChild(b);
+    }
+
+    function move(dx, dy) {
+        if (!collision(dx, dy)) {
+            currentPiece.x += dx;
+            currentPiece.y += dy;
+            draw();
+            return true;
+        } else if (dy > 0) {
+            lock();
             currentPiece = createPiece();
-            if (gameInterval) clearInterval(gameInterval);
-            gameInterval = setInterval(() => move(0, 1), 800);
+            if (collision(0, 0)) {
+                clearInterval(gameInterval);
+                gameOverScreen.classList.remove('hidden');
+            }
+        }
+        return false;
+    }
+
+    function collision(dx, dy, shape = currentPiece.shape) {
+        return shape.some((row, py) => {
+            return row.some((v, px) => {
+                let nx = currentPiece.x + px + dx;
+                let ny = currentPiece.y + py + dy;
+                return v && (nx < 0 || nx >= COLS || ny >= ROWS || (ny >= 0 && grid[ny][nx]));
+            });
+        });
+    }
+
+    function lock() {
+        currentPiece.shape.forEach((row, py) => {
+            row.forEach((v, dx) => {
+                if (v) grid[currentPiece.y + py][currentPiece.x + dx] = currentPiece.type;
+            });
+        });
+        clearLines();
+    }
+
+    function clearLines() {
+        let linesCleared = 0;
+        grid = grid.filter(row => {
+            if (row.every(cell => cell !== 0)) {
+                linesCleared++;
+                return false;
+            }
+            return true;
+        });
+        while (grid.length < ROWS) grid.unshift(Array(COLS).fill(0));
+        if (linesCleared > 0) {
+            score += linesCleared * 100;
+            scoreEl.innerText = score;
+        }
+    }
+
+    function rotate() {
+        const r = currentPiece.shape[0].map((_, i) => currentPiece.shape.map(row => row[i]).reverse());
+        if (!collision(0, 0, r)) {
+            currentPiece.shape = r;
             draw();
         }
+    }
 
-        function createPiece() {
-            const keys = Object.keys(SHAPES);
-            const type = keys[Math.floor(Math.random() * keys.length)];
-            return { type, shape: SHAPES[type], x: 3, y: 0 };
-        }
+    // 3. 이벤트 리스너 (직접 등록)
+    document.getElementById('start-btn').addEventListener('click', init);
+    document.getElementById('retry-btn').addEventListener('click', init);
 
-        function draw() {
-            boardEl.innerHTML = '';
-            grid.forEach((row, y) => {
-                row.forEach((type, x) => {
-                    if (type) addBlock(x, y, type);
-                });
-            });
-            if (currentPiece) {
-                currentPiece.shape.forEach((row, dy) => {
-                    row.forEach((v, dx) => {
-                        if (v) addBlock(currentPiece.x + dx, currentPiece.y + dy, currentPiece.type);
-                    });
-                });
-            }
-        }
-
-        function addBlock(x, y, type) {
-            const b = document.createElement('div');
-            b.className = 'block ' + type;
-            b.style.left = x * 25 + 'px';
-            b.style.top = y * 25 + 'px';
-            boardEl.appendChild(b);
-        }
-
-        function move(dx, dy) {
-            if (!collision(dx, dy)) {
-                currentPiece.x += dx;
-                currentPiece.y += dy;
-                draw();
-                return true;
-            } else if (dy > 0) {
-                lock();
-                currentPiece = createPiece();
-                if (collision(0, 0)) {
-                    clearInterval(gameInterval);
-                    gameOverScreen.classList.remove('hidden');
-                }
-            }
-            return false;
-        }
-
-        function collision(dx, dy) {
-            return currentPiece.shape.some((row, py) => {
-                return row.some((v, px) => {
-                    let nx = currentPiece.x + px + dx;
-                    let ny = currentPiece.y + py + dy;
-                    return v && (nx < 0 || nx >= COLS || ny >= ROWS || (ny >= 0 && grid[ny][nx]));
-                });
-            });
-        }
-
-        function lock() {
-            currentPiece.shape.forEach((row, py) => {
-                row.forEach((v, dx) => {
-                    if (v) grid[currentPiece.y + py][currentPiece.x + dx] = currentPiece.type;
-                });
-            });
-            clearLines();
-        }
-
-        function clearLines() {
-            grid = grid.filter(row => !row.every(cell => cell !== 0));
-            while (grid.length < ROWS) grid.unshift(Array(COLS).fill(0));
-            score += 100;
-            scoreEl.innerText = score;
-        }
-
-        function rotate() {
-            const r = currentPiece.shape[0].map((_, i) => currentPiece.shape.map(row => row[i]).reverse());
-            if (!collision(0, 0, r)) {
-                currentPiece.shape = r;
-                draw();
-            }
-        }
-
-        // 버튼 클릭 이벤트 바인딩
-        startBtn.onclick = init;
-        retryBtn.onclick = init;
-
-        window.onkeydown = e => {
+    window.addEventListener('keydown', e => {
+        if (startScreen.classList.contains('hidden')) {
             if (e.key === 'ArrowLeft') move(-1, 0);
             if (e.key === 'ArrowRight') move(1, 0);
             if (e.key === 'ArrowDown') move(0, 1);
             if (e.key === 'ArrowUp') rotate();
-        };
-    };
+            if (e.key === ' ') { while(move(0, 1)); } // 하드 드랍
+        }
+    });
 </script>
 </body>
 </html>
